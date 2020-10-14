@@ -28,6 +28,7 @@ class App extends Component {
     ],
     selectedOption: null,
     results: [],
+    count:0,
     options: {
       chart: {
           height: 350,
@@ -85,7 +86,10 @@ class App extends Component {
       },
       legend: {
         horizontalAlign: "left",
-        offsetX: 40
+        offsetX: 40,
+        onItemClick: {
+          toggleDataSeries: true
+        }
       }
     },
     series: [
@@ -111,33 +115,40 @@ class App extends Component {
   handleChange = selectedOption => {
       this.setState({ selectedOption },() => {
         console.log(this.state.selectedOption[0].value);
-        this.state.selectedOption.map(option => this.searchWeather(option.value));
+        let temp = [];
+        this.state.selectedOption.map(option => {
+            this.searchWeather(option.value,temp);
+        });
       });
   };
 
-  searchWeather = query => {
+  searchWeather = (query,temp) => {
     API.search(query)
         .then(res=>{
-            this.listResponse(res);
+            return this.listResponse(res,query);
+        })
+        .then(r=>{
+            temp.push(r);
+            this.setState({series:temp},()=>console.log(this.state.series));
         })
         .catch(err=>console.log(err));
   }
 
-  listResponse = res => {
-//    const newResponse = {
-//        name: "",
-//        data: []
-//    };
-    const data = [];
+  listResponse = (res,query) => {
+    const newResponse = {
+        name: query,
+        data: []
+    };
     const dates = [];
     res.data.list.map(d=>
             {
-            data.push(d.main.temp);
+            newResponse.data.push(d.main.temp);
             dates.push(d.dt);
             }
         );
 //    this.setState({results:newResponse},()=>console.log(this.state.results));
-    console.log(dates);
+//    console.log(dates);
+    return newResponse;
   }
 
   updateData = res => {
@@ -160,7 +171,6 @@ class App extends Component {
     const { selectedOption } = this.state;
     return (
         <div className="App">
-          <h1>5 days temperatures record</h1>
           <Select
                   isMulti
                   className="basic-multi-select"
@@ -170,6 +180,7 @@ class App extends Component {
                   options={this.state.menu}
           />
           <Chart
+                  className="achart"
                   options={this.state.options}
                   series={this.state.series}
                   type="line"
